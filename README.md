@@ -1,4 +1,11 @@
 ## CitoPlus - Sistema de Gestión de Visitantes
+
+
+
+https://github.com/user-attachments/assets/ef6de4d7-b9b5-475b-bc83-0d429388ada0
+
+
+
 ### 📋 Descripción
 CitoPlus es una aplicación web fullstack para la gestión de visitantes y usuarios, desarrollada con Node.js y React. El sistema permite administrar el registro de visitantes, gestionar usuarios y visualizar estadísticas en tiempo real.
 
