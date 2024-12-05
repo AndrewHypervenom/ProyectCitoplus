@@ -1,0 +1,77 @@
+-- Crear la base de datos principal de CitoPlus
+CREATE DATABASE dbsofcitusplus;
+
+-- Verificar si existe el usuario del sistema
+SELECT usename FROM pg_user WHERE usename = 'devsofcitusplus';
+
+-- Configuración de usuario: actualizar contraseña si existe
+ALTER USER devsofcitusplus WITH PASSWORD '9Sp-TUY-:z*4,@+G';
+
+-- Crear usuario si no existe
+CREATE USER devsofcitusplus WITH PASSWORD 'devsofcitusplus';
+
+-- Asignar propiedad de la base de datos al usuario principal
+ALTER DATABASE dbsofcitusplus OWNER TO devsofcitusplus;
+
+-- Revocar todos los permisos públicos por seguridad
+REVOKE ALL ON DATABASE dbsofcitusplus FROM PUBLIC;
+
+-- Otorgar permiso de conexión al usuario principal
+GRANT CONNECT ON DATABASE dbsofcitusplus TO devsofcitusplus;
+
+-- Tabla de usuarios: Almacena información de usuarios del sistema
+CREATE TABLE usuarios (
+    id SERIAL PRIMARY KEY,                                             -- Identificador único autoincremental
+    nombre_usuario VARCHAR(50) UNIQUE NOT NULL,                        -- Nombre de usuario único
+    password VARCHAR(255) NOT NULL,                                    -- Hash de la contraseña (bcrypt)
+    fecha_creacion TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, -- Fecha y hora de creación del usuario
+    ultimo_acceso TIMESTAMP WITH TIME ZONE,                            -- Último acceso registrado
+    estado BOOLEAN DEFAULT true,                                       -- Estado del usuario (activo/inactivo)
+    rol VARCHAR(20) DEFAULT 'usuario'                                  -- Rol del usuario (admin/usuario)
+);
+
+-- Tabla de visitantes: Registro de visitas al edificio
+CREATE TABLE visitantes (
+    id SERIAL PRIMARY KEY,                                           -- Identificador único autoincremental
+    nombre VARCHAR(100) NOT NULL,                                    -- Nombre completo del visitante
+    numero_identificacion VARCHAR(50) NOT NULL,                      -- Número de documento de identidad
+    fecha_visita TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP, -- Fecha y hora de registro
+    fecha_salida TIMESTAMP WITH TIME ZONE,                           -- Fecha y hora de salida
+    motivo VARCHAR(255) NOT NULL,                                    -- Motivo de la visita
+    estado VARCHAR(20) DEFAULT 'pendiente',                          -- Estado actual de la visita
+    creado_por INTEGER REFERENCES usuarios(id),                      -- Usuario que registró la visita
+    CONSTRAINT chk_estado CHECK (                                    -- Restricción de estados válidos
+        estado IN (
+            'pendiente',    -- Visita registrada pero no iniciada
+            'autorizado',   -- Visita aprobada
+            'en_progreso',  -- Visitante en las instalaciones
+            'finalizado',   -- Visita completada normalmente
+            'rechazado',    -- Visita no autorizada
+            'cancelado',    -- Visita cancelada por el solicitante
+            'expirado',     -- Visita no realizada en tiempo
+            'bloqueado',    -- Visitante con acceso restringido
+            'reprogramado', -- Visita movida a otra fecha
+            'sin_confirmar' -- Pendiente de confirmación
+        )
+    )
+);
+
+-- Índices para optimización de consultas frecuentes
+CREATE INDEX idx_visitantes_nombre ON visitantes(nombre);                               -- Búsqueda por nombre
+CREATE INDEX idx_visitantes_numero_identificacion ON visitantes(numero_identificacion); -- Búsqueda por documento
+CREATE INDEX idx_visitantes_fecha ON visitantes(fecha_visita);                          -- Filtrado por fecha
+CREATE INDEX idx_visitantes_estado ON visitantes(estado);                               -- Filtrado por estado
+CREATE INDEX idx_visitantes_creado_por ON visitantes(creado_por);                       -- Búsqueda por creador
+CREATE INDEX idx_usuarios_rol ON usuarios(rol);                                         -- Filtrado por rol
+
+-- Inserción de usuario administrador inicial
+INSERT INTO usuarios (nombre_usuario, password, estado, rol) 
+VALUES ('admin', '$2b$10$4LqHX/wPJBC3aBXzwl6ys.KqZVOCcE3SQSbEX4zyx2407BuJAuczm', true, 'admin'); -- Crear hash backend/src/app.js
+
+-- Datos de prueba: Registro de visitantes iniciales
+INSERT INTO visitantes (nombre, numero_identificacion, motivo, creado_por, estado) 
+VALUES 
+('Juan Perez', '12345678', 'Reunión de trabajo', 1, 'en_progreso'),    -- Visita en curso
+('María Garcia', '87654321', 'Entrevista', 1, 'finalizado'),           -- Visita completada
+('Carlos Lopez', '11223344', 'Mantenimiento', 1, 'cancelado'),         -- Visita cancelada
+('Andrew H', '87654301', 'Entrevista', 1, 'en_progreso');              -- Visita en curso
